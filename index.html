@@ -115,7 +115,6 @@ table.admin select { font-size: .85rem; padding: 3px 4px; }
 <div class="top-bar">
     <h1>ฉลากยาตู้ฉุกเฉิน ER</h1>
     <button id="btn-print" class="primary" disabled>พิมพ์ฉลาก <span id="print-count"></span><span class="kbd">Ctrl+Enter</span></button>
-    <button id="btn-fill">เติมเต็มทั้งตู้</button>
     <button id="btn-reprint">พิมพ์ซ้ำครั้งล่าสุด</button>
     <button id="btn-clear">ล้างค่า<span class="kbd">Esc</span></button>
     <span class="spacer"></span>
@@ -127,10 +126,10 @@ table.admin select { font-size: .85rem; padding: 3px 4px; }
     <div class="panel">
         <div class="search-row">
             <input id="search" type="search" placeholder="ค้นหาชื่อยา..." autocomplete="off">
-            <span class="hint">ใส่ "เหลือในตู้" เพื่อคำนวณจำนวนฉลากที่ต้องพิมพ์ หรือใส่ "พิมพ์" เองได้</span>
+            <span class="hint">ใส่จำนวนฉลากที่ต้องการพิมพ์ในช่อง "พิมพ์"</span>
         </div>
         <table class="drugs">
-            <thead><tr><th>ยา</th><th class="num">บรรจุ</th><th class="num">สต็อก</th><th class="num">เหลือในตู้</th><th class="num">พิมพ์ (ใบ)</th></tr></thead>
+            <thead><tr><th>ยา</th><th class="num">บรรจุ</th><th class="num">พิมพ์ (ใบ)</th></tr></thead>
             <tbody id="drug-rows"></tbody>
         </table>
     </div>
@@ -245,7 +244,6 @@ let settings = { ...DEFAULT_SETTINGS, ...load(LS.settings, {}) };
 let list = { updated: '', drugs: [] };   // { updated, drugs }
 let listSource = '';
 const qty  = {};   // id -> labels to print
-const left = {};   // id -> packs left in cart
 
 /* ── Utility ─────────────────────────────────────────────────────────── */
 const $ = sel => document.querySelector(sel);
@@ -323,18 +321,16 @@ function renderRows() {
         const drugs = activeDrugs().filter(d => (GROUPS[d.group] || GROUPS.tablet).sec === sec)
             .filter(d => !q || d.name.toLowerCase().includes(q) || d.id.toLowerCase().includes(q));
         if (!drugs.length) continue;
-        rows.push(`<tr class="section"><td colspan="5">${esc(title)}</td></tr>`);
+        rows.push(`<tr class="section"><td colspan="3">${esc(title)}</td></tr>`);
         for (const d of drugs) {
             rows.push(`<tr data-id="${esc(d.id)}" class="${qty[d.id] > 0 ? 'on' : ''}">
                 <td><div class="drug-name">${esc(d.name)}</div><div class="drug-sub">${esc((GROUPS[d.group] || GROUPS.tablet).name)}${d.exp ? ' · มี Exp' : ''}</div></td>
                 <td class="num"># ${esc(d.pack)}</td>
-                <td class="num">${esc(d.stock)}</td>
-                <td class="num"><input type="number" min="0" data-left value="${left[d.id] ?? ''}"></td>
                 <td class="num"><input type="number" min="0" data-qty value="${qty[d.id] || ''}"></td>
             </tr>`);
         }
     }
-    $('#drug-rows').innerHTML = rows.join('') || '<tr><td colspan="5" class="empty">ไม่พบยา</td></tr>';
+    $('#drug-rows').innerHTML = rows.join('') || '<tr><td colspan="3" class="empty">ไม่พบยา</td></tr>';
 }
 
 function setQty(id, n) {
@@ -355,7 +351,7 @@ function renderPreview() {
     const total = items.reduce((s, d) => s + qty[d.id], 0);
     $('#previews').innerHTML = items.length
         ? items.map(d => `<div class="preview-item"><span class="badge">× ${qty[d.id]}</span>${stockPreviewHTML(d, stamp)}</div>`).join('')
-        : '<div class="empty">ยังไม่ได้เลือกยา<br>ใส่จำนวนในช่อง "เหลือในตู้" หรือ "พิมพ์"</div>';
+        : '<div class="empty">ยังไม่ได้เลือกยา<br>ใส่จำนวนในช่อง "พิมพ์"</div>';
     $('#preview-total').textContent = total ? `${items.length} รายการ · ${total} ใบ` : '';
     $('#print-count').textContent = total ? `(${total})` : '';
     $('#btn-print').disabled = total === 0;
@@ -404,15 +400,8 @@ function reprintLast() {
 }
 function clearAll() {
     for (const k of Object.keys(qty)) delete qty[k];
-    for (const k of Object.keys(left)) delete left[k];
     renderRows(); renderPreview();
     showToast('ล้างค่าแล้ว');
-}
-function fillCart() {
-    for (const k of Object.keys(left)) delete left[k];
-    for (const d of activeDrugs()) { if (d.stock > 0) qty[d.id] = d.stock; }
-    renderRows(); renderPreview();
-    showToast('เลือกฉลากเต็มสต็อกทุกรายการ');
 }
 
 /* ── Print log (no patient data) ─────────────────────────────────────── */
@@ -486,13 +475,12 @@ function groupOptions(sel) {
     return Object.entries(GROUPS).map(([k, g]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${esc(g.name)}</option>`).join('');
 }
 function renderAdminTable() {
-    $('#admin-table').innerHTML = `<tr><th>#</th><th>ชื่อยาบนฉลาก</th><th>หน่วย</th><th># บรรจุ</th><th>สต็อก</th><th>กลุ่มฉลาก</th><th>คำเตือน 1</th><th>คำเตือน 2</th><th>ข้อบ่งใช้</th><th>Exp</th><th>ใช้งาน</th><th></th></tr>` +
+    $('#admin-table').innerHTML = `<tr><th>#</th><th>ชื่อยาบนฉลาก</th><th>หน่วย</th><th># บรรจุ</th><th>กลุ่มฉลาก</th><th>คำเตือน 1</th><th>คำเตือน 2</th><th>ข้อบ่งใช้</th><th>Exp</th><th>ใช้งาน</th><th></th></tr>` +
         draft.map((d, i) => `<tr data-i="${i}">
             <td>${i + 1}</td>
             <td><input type="text" class="w-name" data-f="name" value="${esc(d.name)}"></td>
             <td><input type="text" data-f="unit" value="${esc(d.unit)}" style="min-width:60px"></td>
             <td><input type="number" min="0" data-f="pack" value="${esc(d.pack)}"></td>
-            <td><input type="number" min="0" data-f="stock" value="${esc(d.stock)}"></td>
             <td><select data-f="group">${groupOptions(d.group)}</select></td>
             <td><input type="text" class="w-line" data-f="warn1" value="${esc(d.warn1)}"></td>
             <td><input type="text" class="w-line" data-f="warn2" value="${esc(d.warn2)}"></td>
@@ -556,20 +544,11 @@ $('#search').addEventListener('input', renderRows);
 $('#drug-rows').addEventListener('input', e => {
     const tr = e.target.closest('tr[data-id]');
     if (!tr) return;
-    const id = tr.dataset.id, d = drugById(id);
-    if (e.target.matches('[data-left]')) {
-        const v = e.target.value;
-        if (v === '') { delete left[id]; setQty(id, 0); return; }
-        left[id] = Math.max(0, Math.floor(Number(v) || 0));
-        setQty(id, d.stock - left[id]);
-    } else if (e.target.matches('[data-qty]')) {
-        setQty(id, e.target.value);
-    }
+    if (e.target.matches('[data-qty]')) setQty(tr.dataset.id, e.target.value);
 });
 $('#btn-print').addEventListener('click', handlePrint);
 $('#btn-reprint').addEventListener('click', reprintLast);
 $('#btn-clear').addEventListener('click', clearAll);
-$('#btn-fill').addEventListener('click', fillCart);
 $('#btn-log').addEventListener('click', () => { renderLog(); openModal('#log-modal'); });
 $('#btn-log-csv').addEventListener('click', exportLogCSV);
 $('#btn-log-clear').addEventListener('click', () => {
@@ -597,7 +576,7 @@ $('#admin-table').addEventListener('click', e => {
     if (confirm(`ลบ ${draft[i].name || 'แถวนี้'}?`)) { draft.splice(i, 1); renderAdminTable(); }
 });
 $('#btn-add-drug').addEventListener('click', () => {
-    draft.push({ id: 'd' + Date.now(), name: '', unit: 'เม็ด', pack: 10, stock: 5, group: 'tablet', warn1: '', warn2: '', indication: '', exp: false, active: true });
+    draft.push({ id: 'd' + Date.now(), name: '', unit: 'เม็ด', pack: 10, group: 'tablet', warn1: '', warn2: '', indication: '', exp: false, active: true });
     renderAdminTable();
     const wrap = document.querySelector('.admin-table-wrap');
     wrap.scrollTop = wrap.scrollHeight;
