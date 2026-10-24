@@ -460,22 +460,19 @@ function closeModal(el) { el.classList.remove('open'); }
 function anyModalOpen() { return document.querySelector('.modal.open'); }
 
 /* ── Admin (PIN is a soft gate against accidental edits, not security) ── */
+const DEFAULT_PIN = '36243';
 let pinCallback = null;
 function askPin(onOk) {
-    const pin = load(LS.pin, '');
     pinCallback = onOk;
-    $('#pin-title').textContent = pin ? 'ใส่ PIN ผู้ดูแล' : 'ตั้ง PIN ผู้ดูแล';
-    $('#pin-hint').textContent = pin ? '' : 'ยังไม่เคยตั้ง PIN — ใส่ตัวเลขที่ต้องการใช้';
     $('#pin-input').value = '';
     openModal('#pin-modal');
     setTimeout(() => $('#pin-input').focus(), 50);
 }
 function submitPin() {
-    const pin = load(LS.pin, '');
+    const pin = load(LS.pin, '') || DEFAULT_PIN;
     const v = $('#pin-input').value.trim();
     if (!v) return;
-    if (!pin) { store(LS.pin, v); showToast('ตั้ง PIN แล้ว'); }
-    else if (v !== pin) { showToast('PIN ไม่ถูกต้อง'); $('#pin-input').select(); return; }
+    if (v !== pin) { showToast('PIN ไม่ถูกต้อง'); $('#pin-input').select(); return; }
     closeModal($('#pin-modal'));
     if (pinCallback) pinCallback();
 }
