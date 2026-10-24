@@ -211,7 +211,8 @@ table.admin select { font-size: .85rem; padding: 3px 4px; }
 <div id="toast"></div>
 <div id="print-area"></div>
 
-<script src="cart-list.js"></script>
+<!-- fetched fresh each time so an updated list on GitHub shows up without a hard refresh -->
+<script>document.write('<script src="cart-list.js?t=' + Date.now() + '"><\/script>');</script>
 <script>
 'use strict';
 
@@ -281,6 +282,11 @@ function loadList() {
     const local = load(LS.list, null);
     if (local && local.drugs && (Date.parse(local.updated) || 0) >= (Date.parse(file.updated) || 0)) {
         list = local; listSource = 'แก้ไขในเครื่องนี้ (' + local.updated.slice(0, 10) + ')';
+        // lists saved before the cart maximum existed take it from the file
+        for (const d of list.drugs) {
+            const f = file.drugs.find(x => x.id === d.id);
+            if (d.max == null && f && f.max) d.max = f.max;
+        }
     } else {
         list = JSON.parse(JSON.stringify(file));
         listSource = 'ไฟล์ cart-list.js (' + (file.updated || '').slice(0, 10) + ')';
