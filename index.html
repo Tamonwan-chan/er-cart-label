@@ -12,7 +12,7 @@
     --primary: #c2185b; --primary-soft: #fce4ec; --ok: #2e7d32; --warn: #b26a00;
     --font: 'Sarabun', 'Tahoma', sans-serif;
     /* label calibration, overwritten from settings */
-    --lbl-top: 11mm; --lbl-side: 4mm; --lbl-scale: 1;
+    --lbl-top: 11mm; --lbl-side: 6mm; --lbl-scale: 1; --lbl-rotate: 180deg; --lbl-shift: 0mm;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; }
@@ -105,7 +105,8 @@ table.admin select { font-size: .85rem; padding: 3px 4px; }
     html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
     body > *:not(#print-area) { display: none !important; }
     #print-area { display: block !important; }
-    #print-area .label { page-break-after: always; break-after: page; }
+    /* the roll feeds with the pink header trailing, so the label is printed turned around */
+    #print-area .label { page-break-after: always; break-after: page; transform: translateX(var(--lbl-shift)) rotate(var(--lbl-rotate)); }
     #print-area .label:last-child { page-break-after: auto; break-after: auto; }
 }
 </style>
@@ -182,6 +183,8 @@ table.admin select { font-size: .85rem; padding: 3px 4px; }
             <div class="form-grid">
                 <label for="set-top">ระยะขอบบน (มม.) <div class="hint">เว้นที่ให้หัวฉลากสีชมพู</div></label><input id="set-top" type="number" step="0.5" min="0" max="30">
                 <label for="set-side">ระยะขอบซ้าย-ขวา (มม.)</label><input id="set-side" type="number" step="0.5" min="0" max="15">
+                <label for="set-rotate">หมุนฉลาก 180° <div class="hint">เปิดไว้ถ้าหัวฉลากสีชมพูออกมาอยู่ด้านล่าง</div></label><input id="set-rotate" type="checkbox" style="justify-self:start">
+                <label for="set-shift">เลื่อนซ้าย-ขวา (มม.) <div class="hint">ตัวหนังสือขาดด้านใด ลองใส่ + หรือ − ทีละ 1</div></label><input id="set-shift" type="number" step="0.5" min="-15" max="15">
                 <label for="set-scale">ขนาดตัวอักษร (%)</label><input id="set-scale" type="number" step="5" min="60" max="150">
                 <label for="set-dept">ชื่อหน่วยงานท้ายฉลาก</label><input id="set-dept" type="text">
                 <label for="set-pin">เปลี่ยน PIN ผู้ดูแล <div class="hint">เว้นว่างถ้าไม่เปลี่ยน</div></label><input id="set-pin" type="password" inputmode="numeric" autocomplete="off">
@@ -239,7 +242,7 @@ function store(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
 }
 
-const DEFAULT_SETTINGS = { top: 11, side: 4, scale: 100, dept: 'เภสัชกรรมตึกใหม่' };
+const DEFAULT_SETTINGS = { top: 11, side: 6, scale: 100, dept: 'เภสัชกรรมตึกใหม่', rotate: true, shift: 0 };
 let settings = { ...DEFAULT_SETTINGS, ...load(LS.settings, {}) };
 let list = { updated: '', drugs: [] };   // { updated, drugs }
 let listSource = '';
@@ -294,6 +297,8 @@ function applySettings() {
     r.setProperty('--lbl-top', settings.top + 'mm');
     r.setProperty('--lbl-side', settings.side + 'mm');
     r.setProperty('--lbl-scale', settings.scale / 100);
+    r.setProperty('--lbl-rotate', settings.rotate ? '180deg' : '0deg');
+    r.setProperty('--lbl-shift', settings.shift + 'mm');
 }
 
 /* ── Label markup ────────────────────────────────────────────────────── */
@@ -467,6 +472,8 @@ function openAdmin() {
     $('#set-side').value = settings.side;
     $('#set-scale').value = settings.scale;
     $('#set-dept').value = settings.dept;
+    $('#set-rotate').checked = settings.rotate;
+    $('#set-shift').value = settings.shift;
     $('#set-pin').value = '';
     $('#backup-source').textContent = listSource;
     openModal('#admin-modal');
@@ -506,6 +513,8 @@ function saveSettings() {
         side:  Number($('#set-side').value)  || 0,
         scale: Number($('#set-scale').value) || 100,
         dept:  $('#set-dept').value.trim(),
+        rotate: $('#set-rotate').checked,
+        shift: Number($('#set-shift').value) || 0,
     };
     store(LS.settings, settings);
     const newPin = $('#set-pin').value.trim();
