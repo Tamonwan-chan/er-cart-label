@@ -12,7 +12,7 @@
     --primary: #c2185b; --primary-soft: #fce4ec; --ok: #2e7d32; --warn: #b26a00;
     --font: 'Sarabun', 'Tahoma', sans-serif;
     /* label calibration, overwritten from settings */
-    --lbl-top: 11mm; --lbl-side: 6mm; --lbl-scale: 1; --lbl-rotate: 180deg; --lbl-shift: 0mm;
+    --lbl-top: 11mm; --lbl-side: 6mm; --lbl-bottom: 3mm; --lbl-scale: 1; --lbl-rotate: 0deg; --lbl-shift: 0mm;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; }
@@ -60,7 +60,7 @@ table.drugs input[type=number] { width: 64px; text-align: center; }
 .preview-scale { transform-origin: top left; }
 
 /* ── Label (same markup on screen and on paper) ── */
-.label { width: 90mm; height: 60mm; padding: var(--lbl-top) var(--lbl-side) 3mm var(--lbl-side); display: flex; flex-direction: column; overflow: hidden; color: #000; font-family: var(--font); line-height: 1.2; }
+.label { width: 90mm; height: 60mm; padding: var(--lbl-top) var(--lbl-side) var(--lbl-bottom) var(--lbl-side); display: flex; flex-direction: column; overflow: hidden; color: #000; font-family: var(--font); line-height: 1.2; }
 .l-name { display: flex; align-items: flex-end; gap: 2mm; font-size: calc(10.5pt * var(--lbl-scale)); font-weight: 700; }
 .l-name .blank { flex: 1; border-bottom: .3mm dotted #000; height: 1em; margin-bottom: .6mm; }
 .l-sep { border-top: .3mm dashed #000; margin: 1.2mm 0 1mm; }
@@ -105,7 +105,7 @@ table.admin select { font-size: .85rem; padding: 3px 4px; }
     html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
     body > *:not(#print-area) { display: none !important; }
     #print-area { display: block !important; }
-    /* the roll feeds with the pink header trailing, so the label is printed turned around */
+    /* turn the label around if the roll feeds with the pink header trailing */
     #print-area .label { page-break-after: always; break-after: page; transform: translateX(var(--lbl-shift)) rotate(var(--lbl-rotate)); }
     #print-area .label:last-child { page-break-after: auto; break-after: auto; }
 }
@@ -182,6 +182,7 @@ table.admin select { font-size: .85rem; padding: 3px 4px; }
         <div id="tab-settings" class="admin-tab" hidden>
             <div class="form-grid">
                 <label for="set-top">ระยะขอบบน (มม.) <div class="hint">เว้นที่ให้หัวฉลากสีชมพู</div></label><input id="set-top" type="number" step="0.5" min="0" max="30">
+                <label for="set-bottom">ระยะขอบล่าง (มม.) <div class="hint">ชื่อหน่วยงานและวันเวลาขาด ให้เพิ่มทีละ 1</div></label><input id="set-bottom" type="number" step="0.5" min="0" max="30">
                 <label for="set-side">ระยะขอบซ้าย-ขวา (มม.)</label><input id="set-side" type="number" step="0.5" min="0" max="15">
                 <label for="set-rotate">หมุนฉลาก 180° <div class="hint">เปิดไว้ถ้าหัวฉลากสีชมพูออกมาอยู่ด้านล่าง</div></label><input id="set-rotate" type="checkbox" style="justify-self:start">
                 <label for="set-shift">เลื่อนซ้าย-ขวา (มม.) <div class="hint">ตัวหนังสือขาดด้านใด ลองใส่ + หรือ − ทีละ 1</div></label><input id="set-shift" type="number" step="0.5" min="-15" max="15">
@@ -242,7 +243,7 @@ function store(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
 }
 
-const DEFAULT_SETTINGS = { top: 11, side: 6, scale: 100, dept: 'เภสัชกรรมตึกใหม่', rotate: true, shift: 0 };
+const DEFAULT_SETTINGS = { top: 11, side: 6, scale: 100, dept: 'เภสัชกรรมตึกใหม่', rotate: false, shift: 0, bottom: 3 };
 let settings = { ...DEFAULT_SETTINGS, ...load(LS.settings, {}) };
 let list = { updated: '', drugs: [] };   // { updated, drugs }
 let listSource = '';
@@ -296,6 +297,7 @@ function applySettings() {
     const r = document.documentElement.style;
     r.setProperty('--lbl-top', settings.top + 'mm');
     r.setProperty('--lbl-side', settings.side + 'mm');
+    r.setProperty('--lbl-bottom', settings.bottom + 'mm');
     r.setProperty('--lbl-scale', settings.scale / 100);
     r.setProperty('--lbl-rotate', settings.rotate ? '180deg' : '0deg');
     r.setProperty('--lbl-shift', settings.shift + 'mm');
@@ -470,6 +472,7 @@ function openAdmin() {
     renderAdminTable();
     $('#set-top').value = settings.top;
     $('#set-side').value = settings.side;
+    $('#set-bottom').value = settings.bottom;
     $('#set-scale').value = settings.scale;
     $('#set-dept').value = settings.dept;
     $('#set-rotate').checked = settings.rotate;
@@ -511,6 +514,7 @@ function saveSettings() {
     settings = {
         top:   Number($('#set-top').value)   || 0,
         side:  Number($('#set-side').value)  || 0,
+        bottom: Number($('#set-bottom').value) || 0,
         scale: Number($('#set-scale').value) || 100,
         dept:  $('#set-dept').value.trim(),
         rotate: $('#set-rotate').checked,
