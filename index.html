@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ฉลากยาตู้ฉุกเฉิน ER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap">
+<style>
+:root {
+    --bg: #f4f5f7; --panel: #ffffff; --line: #d9dce1; --text: #1d2330; --muted: #6b7280;
+    --primary: #c2185b; --primary-soft: #fce4ec; --ok: #2e7d32; --warn: #b26a00;
+    --font: 'Sarabun', 'Tahoma', sans-serif;
+    /* label calibration, overwritten from settings */
+    --lbl-top: 11mm; --lbl-side: 4mm; --lbl-scale: 1;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; }
+button { font-family: var(--font); font-size: .95rem; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 7px 12px; border-radius: 6px; }
+button:hover { border-color: var(--primary); }
+button.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
+button.primary:disabled { background: #e0a3bb; border-color: #e0a3bb; cursor: not-allowed; }
+button.danger { color: #b00020; }
+input, select { font-family: var(--font); font-size: .95rem; padding: 5px 7px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--text); }
+.kbd { font-size: .7rem; opacity: .8; margin-left: 6px; border: 1px solid currentColor; border-radius: 3px; padding: 0 4px; }
+
+/* ── Top bar ── */
+.top-bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.top-bar h1 { font-size: 1.15rem; margin: 0 12px 0 0; }
+.top-bar .spacer { flex: 1; }
+
+/* ── Layout ── */
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; padding: 16px; align-items: start; }
+@media (max-width: 980px) { .app { grid-template-columns: 1fr; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.search-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+.search-row input { flex: 1; min-width: 200px; }
+.hint { color: var(--muted); font-size: .85rem; }
+
+table.drugs { width: 100%; border-collapse: collapse; }
+table.drugs th, table.drugs td { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+table.drugs th { font-size: .8rem; color: var(--muted); font-weight: 600; }
+table.drugs td.num, table.drugs th.num { text-align: center; }
+table.drugs tr.section td { background: #eef0f3; font-weight: 700; font-size: .9rem; }
+table.drugs tr.on td { background: var(--primary-soft); }
+table.drugs input[type=number] { width: 64px; text-align: center; }
+.drug-name { font-weight: 600; }
+.drug-sub { color: var(--muted); font-size: .8rem; }
+
+/* ── Preview ── */
+.preview-col { position: sticky; top: 70px; max-height: calc(100vh - 86px); overflow-y: auto; }
+.preview-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.preview-item { position: relative; margin-bottom: 12px; }
+.badge { position: absolute; top: 6px; right: 6px; z-index: 2; background: var(--primary); color: #fff; font-weight: 700; border-radius: 12px; padding: 1px 9px; font-size: .85rem; }
+.empty { color: var(--muted); text-align: center; padding: 30px 8px; }
+/* pre-printed stock art, screen only */
+.stock { position: relative; width: 90mm; height: 60mm; background: #fff; border-radius: 3mm; box-shadow: 0 1px 3px rgba(0,0,0,.15); overflow: hidden; }
+.stock::before { content: ''; position: absolute; inset: 1.5mm; border: .4mm solid #e48ab0; border-radius: 2mm; pointer-events: none; }
+.stock .stock-head { position: absolute; top: 2.6mm; left: 0; right: 0; text-align: center; color: #d0457f; font-size: 9pt; pointer-events: none; }
+.preview-scale { transform-origin: top left; }
+
+/* ── Label (same markup on screen and on paper) ── */
+.label { width: 90mm; height: 60mm; padding: var(--lbl-top) var(--lbl-side) 3mm var(--lbl-side); display: flex; flex-direction: column; overflow: hidden; color: #000; font-family: var(--font); line-height: 1.2; }
+.l-name { display: flex; align-items: flex-end; gap: 2mm; font-size: calc(10.5pt * var(--lbl-scale)); font-weight: 700; }
+.l-name .blank { flex: 1; border-bottom: .3mm dotted #000; height: 1em; margin-bottom: .6mm; }
+.l-sep { border-top: .3mm dashed #000; margin: 1.2mm 0 1mm; }
+.l-drug { display: flex; justify-content: space-between; gap: 2mm; font-size: calc(10.5pt * var(--lbl-scale)); font-weight: 700; }
+.l-drug .pack { white-space: nowrap; }
+.l-dir { text-align: center; font-size: calc(12pt * var(--lbl-scale)); font-weight: 700; margin-top: 1mm; }
+.l-fixed { text-align: center; font-size: calc(9.5pt * var(--lbl-scale)); margin-top: .8mm; }
+.l-fixed .w { font-weight: 700; }
+.l-foot { margin-top: auto; display: flex; justify-content: space-between; gap: 2mm; font-size: calc(8pt * var(--lbl-scale)); }
+
+/* ── Modals ── */
+.modal { position: fixed; inset: 0; z-index: 20; background: rgba(20,24,33,.45); display: none; align-items: flex-start; justify-content: center; padding: 30px 12px; overflow-y: auto; }
+.modal.open { display: flex; }
+.modal-box { background: var(--panel); border-radius: 10px; width: 100%; max-width: 1180px; padding: 16px; }
+.modal-box.small { max-width: 380px; }
+.modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.modal-head h2 { margin: 0; font-size: 1.1rem; }
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+.tabs button { border: none; border-bottom: 3px solid transparent; border-radius: 0; background: none; }
+.tabs button.active { border-bottom-color: var(--primary); font-weight: 700; }
+.admin-table-wrap { overflow-x: auto; max-height: 60vh; overflow-y: auto; }
+table.admin { border-collapse: collapse; font-size: .85rem; }
+table.admin th, table.admin td { border-bottom: 1px solid var(--line); padding: 3px 4px; white-space: nowrap; }
+table.admin th { position: sticky; top: 0; background: var(--panel); text-align: left; }
+table.admin input[type=text] { width: 100%; min-width: 90px; font-size: .85rem; padding: 3px 5px; }
+table.admin input.w-name { min-width: 260px; }
+table.admin input.w-line { min-width: 200px; }
+table.admin input[type=number] { width: 58px; font-size: .85rem; padding: 3px 5px; }
+table.admin select { font-size: .85rem; padding: 3px 4px; }
+.form-grid { display: grid; grid-template-columns: 220px 1fr; gap: 10px 14px; align-items: center; max-width: 640px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.log-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.log-table td, .log-table th { border-bottom: 1px solid var(--line); padding: 5px 6px; text-align: left; vertical-align: top; }
+
+#toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: #1d2330; color: #fff; padding: 9px 16px; border-radius: 6px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 30; }
+#toast.show { opacity: 1; }
+#print-area { display: none; }
+
+/* ── Print: only the labels, one per 90 x 60 mm page ── */
+@page { size: 90mm 60mm; margin: 0; }
+@media print {
+    html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+    body > *:not(#print-area) { display: none !important; }
+    #print-area { display: block !important; }
+    #print-area .label { page-break-after: always; break-after: page; }
+    #print-area .label:last-child { page-break-after: auto; break-after: auto; }
+}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+    <h1>ฉลากยาตู้ฉุกเฉิน ER</h1>
+    <button id="btn-print" class="primary" disabled>พิมพ์ฉลาก <span id="print-count"></span><span class="kbd">Ctrl+Enter</span></button>
+    <button id="btn-fill">เติมเต็มทั้งตู้</button>
+    <button id="btn-reprint">พิมพ์ซ้ำครั้งล่าสุด</button>
+    <button id="btn-clear">ล้างค่า<span class="kbd">Esc</span></button>
+    <span class="spacer"></span>
+    <button id="btn-log">บันทึกการพิมพ์</button>
+    <button id="btn-admin">ผู้ดูแล</button>
+</div>
+
+<div class="app">
+    <div class="panel">
+        <div class="search-row">
+            <input id="search" type="search" placeholder="ค้นหาชื่อยา..." autocomplete="off">
+            <span class="hint">ใส่ "เหลือในตู้" เพื่อคำนวณจำนวนฉลากที่ต้องพิมพ์ หรือใส่ "พิมพ์" เองได้</span>
+        </div>
+        <table class="drugs">
+            <thead><tr><th>ยา</th><th class="num">บรรจุ</th><th class="num">สต็อก</th><th class="num">เหลือในตู้</th><th class="num">พิมพ์ (ใบ)</th></tr></thead>
+            <tbody id="drug-rows"></tbody>
+        </table>
+    </div>
+    <div class="panel preview-col">
+        <div class="preview-head"><strong>ตัวอย่างฉลาก</strong><span class="hint" id="preview-total"></span></div>
+        <div id="previews"></div>
+    </div>
+</div>
+
+<!-- Log -->
+<div class="modal" id="log-modal">
+    <div class="modal-box">
+        <div class="modal-head"><h2>บันทึกการพิมพ์</h2><button data-close>ปิด</button></div>
+        <div id="log-body"></div>
+        <div class="actions">
+            <button id="btn-log-csv">ดาวน์โหลด CSV</button>
+            <button id="btn-log-clear" class="danger">ล้างบันทึก</button>
+        </div>
+    </div>
+</div>
+
+<!-- PIN -->
+<div class="modal" id="pin-modal">
+    <div class="modal-box small">
+        <div class="modal-head"><h2 id="pin-title">ใส่ PIN ผู้ดูแล</h2><button data-close>ปิด</button></div>
+        <input id="pin-input" type="password" inputmode="numeric" style="width:100%" autocomplete="off">
+        <div class="hint" id="pin-hint" style="margin-top:6px"></div>
+        <div class="actions"><button id="pin-ok" class="primary">ตกลง</button></div>
+    </div>
+</div>
+
+<!-- Admin -->
+<div class="modal" id="admin-modal">
+    <div class="modal-box">
+        <div class="modal-head"><h2>ผู้ดูแล</h2><button data-close>ปิด</button></div>
+        <div class="tabs">
+            <button data-tab="tab-drugs" class="active">รายการยา</button>
+            <button data-tab="tab-settings">ตั้งค่าฉลาก</button>
+            <button data-tab="tab-backup">สำรองข้อมูล</button>
+        </div>
+        <div id="tab-drugs" class="admin-tab">
+            <div class="admin-table-wrap"><table class="admin" id="admin-table"></table></div>
+            <div class="actions">
+                <button id="btn-add-drug">+ เพิ่มยา</button>
+                <span class="spacer" style="flex:1"></span>
+                <button id="btn-save-drugs" class="primary">บันทึกรายการยา</button>
+            </div>
+        </div>
+        <div id="tab-settings" class="admin-tab" hidden>
+            <div class="form-grid">
+                <label for="set-top">ระยะขอบบน (มม.) <div class="hint">เว้นที่ให้หัวฉลากสีชมพู</div></label><input id="set-top" type="number" step="0.5" min="0" max="30">
+                <label for="set-side">ระยะขอบซ้าย-ขวา (มม.)</label><input id="set-side" type="number" step="0.5" min="0" max="15">
+                <label for="set-scale">ขนาดตัวอักษร (%)</label><input id="set-scale" type="number" step="5" min="60" max="150">
+                <label for="set-dept">ชื่อหน่วยงานท้ายฉลาก</label><input id="set-dept" type="text">
+                <label for="set-pin">เปลี่ยน PIN ผู้ดูแล <div class="hint">เว้นว่างถ้าไม่เปลี่ยน</div></label><input id="set-pin" type="password" inputmode="numeric" autocomplete="off">
+            </div>
+            <div class="actions">
+                <button id="btn-save-settings" class="primary">บันทึกการตั้งค่า</button>
+                <button id="btn-test-print">พิมพ์ทดสอบ 1 ใบ</button>
+            </div>
+        </div>
+        <div id="tab-backup" class="admin-tab" hidden>
+            <p>รายการยาที่ใช้อยู่: <strong id="backup-source"></strong></p>
+            <p class="hint">ขั้นตอนสำรองข้อมูลขึ้น GitHub: กด "ดาวน์โหลด cart-list.js" แล้วนำไฟล์ไปอัปโหลดแทนไฟล์เดิมใน repo (Add file &gt; Upload files) ทุกเครื่องที่เปิดหน้าเว็บจะได้รายการยาใหม่อัตโนมัติ</p>
+            <div class="actions">
+                <button id="btn-export" class="primary">ดาวน์โหลด cart-list.js</button>
+                <button id="btn-import">นำเข้าไฟล์ cart-list.js</button>
+                <input id="import-file" type="file" accept=".js,.json" hidden>
+                <button id="btn-reset-list" class="danger">กลับไปใช้รายการจากไฟล์</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+<div id="print-area"></div>
+
+<script src="cart-list.js"></script>
+<script>
+'use strict';
+
+/* ── Label templates: one per group (approved wording in the PRD) ─────── */
+const DOTS  = '..............';
+const TIMES = 'เช้า   กลางวัน   เย็น   ก่อนนอน';
+const GROUPS = {
+    tablet:     { name: 'ยาเม็ด',              sec: 'solid',  dir: [`รับประทานครั้งละ${DOTS}เม็ด`, `วันละ${DOTS}ครั้ง  ก่อนอาหาร/หลังอาหาร`, TIMES], fixed: [] },
+    tablet_ac:  { name: 'ยาเม็ด ก่อนอาหาร',     sec: 'solid',  dir: [`รับประทานครั้งละ${DOTS}เม็ด`, `วันละ${DOTS}ครั้ง  ก่อนอาหาร`, TIMES], fixed: [] },
+    capsule:    { name: 'แคปซูล',              sec: 'solid',  dir: [`รับประทานครั้งละ${DOTS}แคปซูล`, `วันละ${DOTS}ครั้ง  ก่อนอาหาร/หลังอาหาร`, TIMES], fixed: [] },
+    capsule_ac: { name: 'แคปซูล ก่อนอาหาร',     sec: 'solid',  dir: [`รับประทานครั้งละ${DOTS}แคปซูล`, `วันละ${DOTS}ครั้ง  ก่อนอาหาร`, TIMES], fixed: [] },
+    syrup:      { name: 'ยาน้ำ',               sec: 'liquid', dir: [`รับประทานครั้งละ${DOTS}ซีซี`, `วันละ${DOTS}ครั้ง  ก่อน/หลังอาหาร`, TIMES], fixed: [] },
+    syrup_ac:   { name: 'ยาน้ำ ก่อนอาหาร',      sec: 'liquid', dir: [`รับประทานครั้งละ${DOTS}ซีซี`, `วันละ${DOTS}ครั้ง  ก่อนอาหาร`, TIMES], fixed: [] },
+    antacid:    { name: 'ยาน้ำลดกรด (Antacil)', sec: 'liquid', dir: [`รับประทานครั้งละ${DOTS}ช้อนโต๊ะ`, `วันละ${DOTS}ครั้ง  ก่อน/หลังอาหาร`, TIMES], fixed: ['เขย่าขวดก่อนใช้ยา'] },
+    ors:        { name: 'ORS',                  sec: 'other',  dir: ['1 ซองผสมน้ำ 1 แก้ว จิบบ่อยๆ'], fixed: [] },
+    nac:        { name: 'NAC ซอง',              sec: 'other',  dir: [`ละลายครั้งละ${DOTS}ซองผสมน้ำ 1 แก้ว`, `วันละ${DOTS}ครั้ง  หลังอาหาร`, TIMES], fixed: [] },
+    calamine:   { name: 'Calamine lotion',      sec: 'other',  dir: ['ทาบริเวณที่เป็นเวลาคัน'], fixed: ['ยาใช้ภายนอกห้ามรับประทาน'] },
+    enema:      { name: 'ยาสวนทวาร',            sec: 'other',  dir: [`สวนทวารหนักครั้งละ${DOTS}ขวด`, `วันละ${DOTS}ครั้ง`, TIMES], fixed: ['ใช้สวนทวารเท่านั้น ห้ามรับประทาน'] },
+};
+const SECTIONS = [['solid', 'ยาเม็ด / แคปซูล'], ['liquid', 'ยาน้ำ'], ['other', 'ยาใช้ภายนอก / ซอง / สวนทวาร']];
+const THAI_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+/* ── Storage (every access guarded: private windows can throw) ───────── */
+const LS = { list: 'erCart.list', settings: 'erCart.settings', pin: 'erCart.pin', log: 'erCart.log', last: 'erCart.lastJob' };
+function load(key, fallback) {
+    try { const v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); } catch { return fallback; }
+}
+function store(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
+}
+
+const DEFAULT_SETTINGS = { top: 11, side: 4, scale: 100, dept: 'เภสัชกรรมตึกใหม่' };
+let settings = { ...DEFAULT_SETTINGS, ...load(LS.settings, {}) };
+let list = { updated: '', drugs: [] };   // { updated, drugs }
+let listSource = '';
+const qty  = {};   // id -> labels to print
+const left = {};   // id -> packs left in cart
+
+/* ── Utility ─────────────────────────────────────────────────────────── */
+const $ = sel => document.querySelector(sel);
+function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function showToast(msg) {
+    const t = $('#toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function thaiDateTime(d = new Date()) {
+    const yy = String(d.getFullYear() + 543).slice(-2);
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${yy}   ${d.getHours()}:${mm} น.`;
+}
+function activeDrugs() { return list.drugs.filter(d => d.active !== false); }
+function drugById(id) { return list.drugs.find(d => d.id === id); }
+function download(filename, text, type) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ── Cart list: file version vs. admin's local edits, newer wins ─────── */
+function loadList() {
+    const file  = window.CART_LIST_FILE || { updated: '', drugs: [] };
+    const local = load(LS.list, null);
+    if (local && local.drugs && (Date.parse(local.updated) || 0) >= (Date.parse(file.updated) || 0)) {
+        list = local; listSource = 'แก้ไขในเครื่องนี้ (' + local.updated.slice(0, 10) + ')';
+    } else {
+        list = JSON.parse(JSON.stringify(file));
+        listSource = 'ไฟล์ cart-list.js (' + (file.updated || '').slice(0, 10) + ')';
+        if (local) { try { localStorage.removeItem(LS.list); } catch {} showToast('โหลดรายการยาฉบับใหม่จากไฟล์แล้ว'); }
+    }
+}
+function saveList() {
+    list.updated = new Date().toISOString();
+    store(LS.list, list);
+    listSource = 'แก้ไขในเครื่องนี้ (' + list.updated.slice(0, 10) + ')';
+}
+
+function applySettings() {
+    const r = document.documentElement.style;
+    r.setProperty('--lbl-top', settings.top + 'mm');
+    r.setProperty('--lbl-side', settings.side + 'mm');
+    r.setProperty('--lbl-scale', settings.scale / 100);
+}
+
+/* ── Label markup ────────────────────────────────────────────────────── */
+function labelHTML(d, stamp) {
+    const g = GROUPS[d.group] || GROUPS.tablet;
+    const warns = [...g.fixed, d.warn1, d.warn2].filter(Boolean);
+    return `<div class="label">
+        <div class="l-name">ชื่อ<span class="blank"></span></div>
+        <div class="l-sep"></div>
+        <div class="l-drug"><span>${esc(d.name)} ${esc(d.unit)}</span><span class="pack"># ${esc(d.pack)}</span></div>
+        <div class="l-dir">${g.dir.map(line => `<div>${esc(line)}</div>`).join('')}</div>
+        <div class="l-fixed">${warns.map(w => `<div class="w">${esc(w)}</div>`).join('')}${d.indication ? `<div>${esc(d.indication)}</div>` : ''}</div>
+        <div class="l-foot"><span>${esc(settings.dept)}</span>${d.exp ? '<span>Exp ..................</span>' : ''}<span>${esc(stamp)}</span></div>
+    </div>`;
+}
+function stockPreviewHTML(d, stamp) {
+    return `<div class="stock"><div class="stock-head">โรงพยาบาลสันกำแพง ☎ (053) 446635-7</div>${labelHTML(d, stamp)}</div>`;
+}
+
+/* ── Main table ──────────────────────────────────────────────────────── */
+function renderRows() {
+    const q = $('#search').value.trim().toLowerCase();
+    const rows = [];
+    for (const [sec, title] of SECTIONS) {
+        const drugs = activeDrugs().filter(d => (GROUPS[d.group] || GROUPS.tablet).sec === sec)
+            .filter(d => !q || d.name.toLowerCase().includes(q) || d.id.toLowerCase().includes(q));
+        if (!drugs.length) continue;
+        rows.push(`<tr class="section"><td colspan="5">${esc(title)}</td></tr>`);
+        for (const d of drugs) {
+            rows.push(`<tr data-id="${esc(d.id)}" class="${qty[d.id] > 0 ? 'on' : ''}">
+                <td><div class="drug-name">${esc(d.name)}</div><div class="drug-sub">${esc((GROUPS[d.group] || GROUPS.tablet).name)}${d.exp ? ' · มี Exp' : ''}</div></td>
+                <td class="num"># ${esc(d.pack)}</td>
+                <td class="num">${esc(d.stock)}</td>
+                <td class="num"><input type="number" min="0" data-left value="${left[d.id] ?? ''}"></td>
+                <td class="num"><input type="number" min="0" data-qty value="${qty[d.id] || ''}"></td>
+            </tr>`);
+        }
+    }
+    $('#drug-rows').innerHTML = rows.join('') || '<tr><td colspan="5" class="empty">ไม่พบยา</td></tr>';
+}
+
+function setQty(id, n) {
+    n = Math.max(0, Math.floor(Number(n) || 0));
+    if (n > 0) qty[id] = n; else delete qty[id];
+    const tr = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+    if (tr) {
+        tr.classList.toggle('on', n > 0);
+        const inp = tr.querySelector('[data-qty]');
+        if (document.activeElement !== inp) inp.value = n || '';
+    }
+    renderPreview();
+}
+
+function renderPreview() {
+    const stamp = thaiDateTime();
+    const items = activeDrugs().filter(d => qty[d.id] > 0);
+    const total = items.reduce((s, d) => s + qty[d.id], 0);
+    $('#previews').innerHTML = items.length
+        ? items.map(d => `<div class="preview-item"><span class="badge">× ${qty[d.id]}</span>${stockPreviewHTML(d, stamp)}</div>`).join('')
+        : '<div class="empty">ยังไม่ได้เลือกยา<br>ใส่จำนวนในช่อง "เหลือในตู้" หรือ "พิมพ์"</div>';
+    $('#preview-total').textContent = total ? `${items.length} รายการ · ${total} ใบ` : '';
+    $('#print-count').textContent = total ? `(${total})` : '';
+    $('#btn-print').disabled = total === 0;
+    fitPreviews();
+}
+function fitPreviews() {
+    const col = $('#previews');
+    const avail = col.clientWidth;
+    col.querySelectorAll('.stock').forEach(el => {
+        const natural = el.offsetWidth;
+        const s = Math.min(1, avail / natural);
+        el.style.transform = `scale(${s})`;
+        el.style.transformOrigin = 'top left';
+        el.parentElement.style.height = (el.offsetHeight * s) + 'px';
+    });
+}
+
+/* ── Printing ────────────────────────────────────────────────────────── */
+function printJob(items) {   // items: [{ id, n }]
+    const stamp = thaiDateTime();
+    const html = [];
+    for (const { id, n } of items) {
+        const d = drugById(id);
+        if (!d) continue;
+        for (let i = 0; i < n; i++) html.push(labelHTML(d, stamp));
+    }
+    if (!html.length) return false;
+    $('#print-area').innerHTML = html.join('');
+    window.print();
+    $('#print-area').innerHTML = '';
+    return true;
+}
+function handlePrint() {
+    const items = activeDrugs().filter(d => qty[d.id] > 0).map(d => ({ id: d.id, n: qty[d.id] }));
+    if (!items.length) { showToast('ยังไม่ได้เลือกยา'); return; }
+    if (printJob(items)) {
+        store(LS.last, items);
+        addLog(items);
+        showToast(`ส่งพิมพ์ ${items.reduce((s, i) => s + i.n, 0)} ใบ`);
+    }
+}
+function reprintLast() {
+    const items = load(LS.last, null);
+    if (!items || !items.length) { showToast('ยังไม่มีงานพิมพ์ครั้งก่อน'); return; }
+    if (printJob(items)) { addLog(items, true); showToast('พิมพ์ซ้ำแล้ว'); }
+}
+function clearAll() {
+    for (const k of Object.keys(qty)) delete qty[k];
+    for (const k of Object.keys(left)) delete left[k];
+    renderRows(); renderPreview();
+    showToast('ล้างค่าแล้ว');
+}
+function fillCart() {
+    for (const k of Object.keys(left)) delete left[k];
+    for (const d of activeDrugs()) { if (d.stock > 0) qty[d.id] = d.stock; }
+    renderRows(); renderPreview();
+    showToast('เลือกฉลากเต็มสต็อกทุกรายการ');
+}
+
+/* ── Print log (no patient data) ─────────────────────────────────────── */
+function addLog(items, reprint = false) {
+    const log = load(LS.log, []);
+    log.unshift({
+        time: new Date().toISOString(),
+        reprint,
+        items: items.map(({ id, n }) => ({ name: (drugById(id) || { name: id }).name, n })),
+    });
+    store(LS.log, log.slice(0, 2000));
+}
+function renderLog() {
+    const log = load(LS.log, []);
+    $('#log-body').innerHTML = log.length ? `<table class="log-table">
+        <tr><th>วันเวลา</th><th>รายการ</th><th>รวม (ใบ)</th></tr>
+        ${log.map(e => `<tr>
+            <td>${esc(new Date(e.time).toLocaleString('th-TH'))}${e.reprint ? '<br><span class="hint">พิมพ์ซ้ำ</span>' : ''}</td>
+            <td>${e.items.map(i => `${esc(i.name)} × ${i.n}`).join('<br>')}</td>
+            <td>${e.items.reduce((s, i) => s + i.n, 0)}</td></tr>`).join('')}
+    </table>` : '<div class="empty">ยังไม่มีบันทึก</div>';
+}
+function exportLogCSV() {
+    const log = load(LS.log, []);
+    const lines = ['datetime,drug,labels,reprint'];
+    for (const e of log) for (const i of e.items) {
+        lines.push([e.time, '"' + i.name.replace(/"/g, '""') + '"', i.n, e.reprint ? 'yes' : ''].join(','));
+    }
+    download('er-cart-print-log.csv', '﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8');
+}
+
+/* ── Modals ──────────────────────────────────────────────────────────── */
+function openModal(id) { $(id).classList.add('open'); }
+function closeModal(el) { el.classList.remove('open'); }
+function anyModalOpen() { return document.querySelector('.modal.open'); }
+
+/* ── Admin (PIN is a soft gate against accidental edits, not security) ── */
+let pinCallback = null;
+function askPin(onOk) {
+    const pin = load(LS.pin, '');
+    pinCallback = onOk;
+    $('#pin-title').textContent = pin ? 'ใส่ PIN ผู้ดูแล' : 'ตั้ง PIN ผู้ดูแล';
+    $('#pin-hint').textContent = pin ? '' : 'ยังไม่เคยตั้ง PIN — ใส่ตัวเลขที่ต้องการใช้';
+    $('#pin-input').value = '';
+    openModal('#pin-modal');
+    setTimeout(() => $('#pin-input').focus(), 50);
+}
+function submitPin() {
+    const pin = load(LS.pin, '');
+    const v = $('#pin-input').value.trim();
+    if (!v) return;
+    if (!pin) { store(LS.pin, v); showToast('ตั้ง PIN แล้ว'); }
+    else if (v !== pin) { showToast('PIN ไม่ถูกต้อง'); $('#pin-input').select(); return; }
+    closeModal($('#pin-modal'));
+    if (pinCallback) pinCallback();
+}
+
+let draft = [];
+function openAdmin() {
+    draft = JSON.parse(JSON.stringify(list.drugs));
+    renderAdminTable();
+    $('#set-top').value = settings.top;
+    $('#set-side').value = settings.side;
+    $('#set-scale').value = settings.scale;
+    $('#set-dept').value = settings.dept;
+    $('#set-pin').value = '';
+    $('#backup-source').textContent = listSource;
+    openModal('#admin-modal');
+}
+function groupOptions(sel) {
+    return Object.entries(GROUPS).map(([k, g]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${esc(g.name)}</option>`).join('');
+}
+function renderAdminTable() {
+    $('#admin-table').innerHTML = `<tr><th>#</th><th>ชื่อยาบนฉลาก</th><th>หน่วย</th><th># บรรจุ</th><th>สต็อก</th><th>กลุ่มฉลาก</th><th>คำเตือน 1</th><th>คำเตือน 2</th><th>ข้อบ่งใช้</th><th>Exp</th><th>ใช้งาน</th><th></th></tr>` +
+        draft.map((d, i) => `<tr data-i="${i}">
+            <td>${i + 1}</td>
+            <td><input type="text" class="w-name" data-f="name" value="${esc(d.name)}"></td>
+            <td><input type="text" data-f="unit" value="${esc(d.unit)}" style="min-width:60px"></td>
+            <td><input type="number" min="0" data-f="pack" value="${esc(d.pack)}"></td>
+            <td><input type="number" min="0" data-f="stock" value="${esc(d.stock)}"></td>
+            <td><select data-f="group">${groupOptions(d.group)}</select></td>
+            <td><input type="text" class="w-line" data-f="warn1" value="${esc(d.warn1)}"></td>
+            <td><input type="text" class="w-line" data-f="warn2" value="${esc(d.warn2)}"></td>
+            <td><input type="text" class="w-line" data-f="indication" value="${esc(d.indication)}"></td>
+            <td><input type="checkbox" data-f="exp"${d.exp ? ' checked' : ''}></td>
+            <td><input type="checkbox" data-f="active"${d.active !== false ? ' checked' : ''}></td>
+            <td><button class="danger" data-del title="ลบ">✕</button></td>
+        </tr>`).join('');
+}
+function saveDrugs() {
+    const bad = draft.findIndex(d => !d.name.trim());
+    if (bad >= 0) { showToast(`แถวที่ ${bad + 1} ยังไม่มีชื่อยา`); return; }
+    list.drugs = JSON.parse(JSON.stringify(draft));
+    saveList();
+    for (const id of Object.keys(qty)) if (!drugById(id)) delete qty[id];
+    renderRows(); renderPreview();
+    $('#backup-source').textContent = listSource;
+    showToast('บันทึกรายการยาแล้ว — อย่าลืมดาวน์โหลด cart-list.js ไปสำรองบน GitHub');
+}
+function saveSettings() {
+    settings = {
+        top:   Number($('#set-top').value)   || 0,
+        side:  Number($('#set-side').value)  || 0,
+        scale: Number($('#set-scale').value) || 100,
+        dept:  $('#set-dept').value.trim(),
+    };
+    store(LS.settings, settings);
+    const newPin = $('#set-pin').value.trim();
+    if (newPin) { store(LS.pin, newPin); $('#set-pin').value = ''; }
+    applySettings(); renderPreview();
+    showToast('บันทึกการตั้งค่าแล้ว');
+}
+function exportList() {
+    const header = '/* รายการยาตู้ฉุกเฉิน ER — ไฟล์นี้คือข้อมูลสำรอง (backup) ของรายการยา\n' +
+                   '   แก้ไขผ่านหน้า "ผู้ดูแล" ในโปรแกรม แล้วกด "ดาวน์โหลด cart-list.js" เพื่ออัปโหลดแทนไฟล์นี้บน GitHub */\n';
+    const body = JSON.stringify({ updated: list.updated || new Date().toISOString(), drugs: list.drugs }, null, 2);
+    download('cart-list.js', header + 'window.CART_LIST_FILE = ' + body + ';\n', 'text/javascript;charset=utf-8');
+}
+function importList(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            const text = String(reader.result);
+            const data = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+            if (!Array.isArray(data.drugs)) throw new Error('no drugs');
+            list = { updated: new Date().toISOString(), drugs: data.drugs };
+            saveList();
+            draft = JSON.parse(JSON.stringify(list.drugs));
+            renderAdminTable(); renderRows(); renderPreview();
+            $('#backup-source').textContent = listSource;
+            showToast(`นำเข้า ${data.drugs.length} รายการแล้ว`);
+        } catch {
+            showToast('อ่านไฟล์ไม่ได้ — ต้องเป็นไฟล์ cart-list.js จากโปรแกรมนี้');
+        }
+    };
+    reader.readAsText(file);
+}
+
+/* ── Wiring ──────────────────────────────────────────────────────────── */
+$('#search').addEventListener('input', renderRows);
+$('#drug-rows').addEventListener('input', e => {
+    const tr = e.target.closest('tr[data-id]');
+    if (!tr) return;
+    const id = tr.dataset.id, d = drugById(id);
+    if (e.target.matches('[data-left]')) {
+        const v = e.target.value;
+        if (v === '') { delete left[id]; setQty(id, 0); return; }
+        left[id] = Math.max(0, Math.floor(Number(v) || 0));
+        setQty(id, d.stock - left[id]);
+    } else if (e.target.matches('[data-qty]')) {
+        setQty(id, e.target.value);
+    }
+});
+$('#btn-print').addEventListener('click', handlePrint);
+$('#btn-reprint').addEventListener('click', reprintLast);
+$('#btn-clear').addEventListener('click', clearAll);
+$('#btn-fill').addEventListener('click', fillCart);
+$('#btn-log').addEventListener('click', () => { renderLog(); openModal('#log-modal'); });
+$('#btn-log-csv').addEventListener('click', exportLogCSV);
+$('#btn-log-clear').addEventListener('click', () => {
+    if (confirm('ล้างบันทึกการพิมพ์ทั้งหมด?')) { store(LS.log, []); renderLog(); }
+});
+$('#btn-admin').addEventListener('click', () => askPin(openAdmin));
+$('#pin-ok').addEventListener('click', submitPin);
+$('#pin-input').addEventListener('keydown', e => { if (e.key === 'Enter') submitPin(); });
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.closest('.modal'))));
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
+    document.querySelectorAll('.admin-tab').forEach(t => { t.hidden = t.id !== b.dataset.tab; });
+}));
+$('#admin-table').addEventListener('input', e => {
+    const tr = e.target.closest('tr[data-i]'), f = e.target.dataset.f;
+    if (!tr || !f) return;
+    const d = draft[Number(tr.dataset.i)];
+    if (e.target.type === 'checkbox') d[f] = e.target.checked;
+    else if (e.target.type === 'number') d[f] = Math.max(0, Math.floor(Number(e.target.value) || 0));
+    else d[f] = e.target.value;
+});
+$('#admin-table').addEventListener('click', e => {
+    if (!e.target.matches('[data-del]')) return;
+    const i = Number(e.target.closest('tr').dataset.i);
+    if (confirm(`ลบ ${draft[i].name || 'แถวนี้'}?`)) { draft.splice(i, 1); renderAdminTable(); }
+});
+$('#btn-add-drug').addEventListener('click', () => {
+    draft.push({ id: 'd' + Date.now(), name: '', unit: 'เม็ด', pack: 10, stock: 5, group: 'tablet', warn1: '', warn2: '', indication: '', exp: false, active: true });
+    renderAdminTable();
+    const wrap = document.querySelector('.admin-table-wrap');
+    wrap.scrollTop = wrap.scrollHeight;
+});
+$('#btn-save-drugs').addEventListener('click', saveDrugs);
+$('#btn-save-settings').addEventListener('click', saveSettings);
+$('#btn-test-print').addEventListener('click', () => {
+    saveSettings();
+    const d = activeDrugs()[0];
+    if (d) printJob([{ id: d.id, n: 1 }]);
+});
+$('#btn-export').addEventListener('click', exportList);
+$('#btn-import').addEventListener('click', () => $('#import-file').click());
+$('#import-file').addEventListener('change', e => { if (e.target.files[0]) importList(e.target.files[0]); e.target.value = ''; });
+$('#btn-reset-list').addEventListener('click', () => {
+    if (!confirm('ทิ้งการแก้ไขในเครื่องนี้ แล้วใช้รายการยาจากไฟล์ cart-list.js?')) return;
+    try { localStorage.removeItem(LS.list); } catch {}
+    loadList();
+    draft = JSON.parse(JSON.stringify(list.drugs));
+    renderAdminTable(); renderRows(); renderPreview();
+    $('#backup-source').textContent = listSource;
+    showToast('ใช้รายการยาจากไฟล์แล้ว');
+});
+
+document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); if (!anyModalOpen()) handlePrint(); return; }
+    if (e.key === 'Escape') {
+        const open = anyModalOpen();
+        if (open) closeModal(open); else clearAll();
+    }
+});
+window.addEventListener('resize', fitPreviews);
+
+loadList();
+applySettings();
+renderRows();
+renderPreview();
+$('#search').focus();
+</script>
+</body>
+</html>
