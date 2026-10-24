@@ -12,7 +12,7 @@
     --primary: #c2185b; --primary-soft: #fce4ec; --ok: #2e7d32; --warn: #b26a00;
     --font: 'Sarabun', 'Tahoma', sans-serif;
     /* label calibration, overwritten from settings */
-    --lbl-top: 11mm; --lbl-side: 6mm; --lbl-bottom: 3mm; --lbl-scale: 1; --lbl-rotate: 0deg; --lbl-shift: 0mm;
+    --lbl-top: 0mm; --lbl-side: 6mm; --lbl-bottom: 10mm; --lbl-scale: 1; --lbl-rotate: 0deg; --lbl-shift: 0mm;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; }
@@ -43,7 +43,7 @@ table.drugs th { font-size: .8rem; color: var(--muted); font-weight: 600; }
 table.drugs td.num, table.drugs th.num { text-align: center; }
 table.drugs tr.section td { background: #eef0f3; font-weight: 700; font-size: .9rem; }
 table.drugs tr.on td { background: var(--primary-soft); }
-table.drugs input[type=number] { width: 64px; text-align: center; }
+table.drugs select[data-qty] { width: 64px; text-align: center; cursor: pointer; }
 .drug-name { font-weight: 600; }
 .drug-sub { color: var(--muted); font-size: .8rem; }
 
@@ -243,7 +243,7 @@ function store(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
 }
 
-const DEFAULT_SETTINGS = { top: 11, side: 6, scale: 100, dept: 'เภสัชกรรมตึกใหม่', rotate: false, shift: 0, bottom: 3 };
+const DEFAULT_SETTINGS = { top: 0, side: 6, scale: 100, dept: 'เภสัชกรรมตึกใหม่', rotate: false, shift: 0, bottom: 10 };
 let settings = { ...DEFAULT_SETTINGS, ...load(LS.settings, {}) };
 let list = { updated: '', drugs: [] };   // { updated, drugs }
 let listSource = '';
@@ -333,11 +333,19 @@ function renderRows() {
             rows.push(`<tr data-id="${esc(d.id)}" class="${qty[d.id] > 0 ? 'on' : ''}">
                 <td><div class="drug-name">${esc(d.name)}</div><div class="drug-sub">${esc((GROUPS[d.group] || GROUPS.tablet).name)}${d.exp ? ' · มี Exp' : ''}</div></td>
                 <td class="num"># ${esc(d.pack)}</td>
-                <td class="num"><input type="number" min="0" data-qty value="${qty[d.id] || ''}"></td>
+                <td class="num"><select data-qty>${qtyOptions(d, qty[d.id])}</select></td>
             </tr>`);
         }
     }
     $('#drug-rows').innerHTML = rows.join('') || '<tr><td colspan="3" class="empty">ไม่พบยา</td></tr>';
+}
+
+// dropdown runs up to the most this drug the cart holds
+function qtyOptions(d, sel) {
+    const max = d.max > 0 ? d.max : 10;
+    let html = '<option value="">–</option>';
+    for (let n = 1; n <= max; n++) html += `<option value="${n}"${n === sel ? ' selected' : ''}>${n}</option>`;
+    return html;
 }
 
 function setQty(id, n) {
@@ -485,12 +493,13 @@ function groupOptions(sel) {
     return Object.entries(GROUPS).map(([k, g]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${esc(g.name)}</option>`).join('');
 }
 function renderAdminTable() {
-    $('#admin-table').innerHTML = `<tr><th>#</th><th>ชื่อยาบนฉลาก</th><th>หน่วย</th><th># บรรจุ</th><th>กลุ่มฉลาก</th><th>คำเตือน 1</th><th>คำเตือน 2</th><th>ข้อบ่งใช้</th><th>Exp</th><th>ใช้งาน</th><th></th></tr>` +
+    $('#admin-table').innerHTML = `<tr><th>#</th><th>ชื่อยาบนฉลาก</th><th>หน่วย</th><th># บรรจุ</th><th>มีในตู้สูงสุด</th><th>กลุ่มฉลาก</th><th>คำเตือน 1</th><th>คำเตือน 2</th><th>ข้อบ่งใช้</th><th>Exp</th><th>ใช้งาน</th><th></th></tr>` +
         draft.map((d, i) => `<tr data-i="${i}">
             <td>${i + 1}</td>
             <td><input type="text" class="w-name" data-f="name" value="${esc(d.name)}"></td>
             <td><input type="text" data-f="unit" value="${esc(d.unit)}" style="min-width:60px"></td>
             <td><input type="number" min="0" data-f="pack" value="${esc(d.pack)}"></td>
+            <td><input type="number" min="1" data-f="max" value="${esc(d.max ?? '')}"></td>
             <td><select data-f="group">${groupOptions(d.group)}</select></td>
             <td><input type="text" class="w-line" data-f="warn1" value="${esc(d.warn1)}"></td>
             <td><input type="text" class="w-line" data-f="warn2" value="${esc(d.warn2)}"></td>
@@ -589,7 +598,7 @@ $('#admin-table').addEventListener('click', e => {
     if (confirm(`ลบ ${draft[i].name || 'แถวนี้'}?`)) { draft.splice(i, 1); renderAdminTable(); }
 });
 $('#btn-add-drug').addEventListener('click', () => {
-    draft.push({ id: 'd' + Date.now(), name: '', unit: 'เม็ด', pack: 10, group: 'tablet', warn1: '', warn2: '', indication: '', exp: false, active: true });
+    draft.push({ id: 'd' + Date.now(), name: '', unit: 'เม็ด', pack: 10, max: 5, group: 'tablet', warn1: '', warn2: '', indication: '', exp: false, active: true });
     renderAdminTable();
     const wrap = document.querySelector('.admin-table-wrap');
     wrap.scrollTop = wrap.scrollHeight;
