@@ -1,7 +1,7 @@
 /* รายการยาตู้ฉุกเฉิน ER — ไฟล์นี้คือข้อมูลสำรอง (backup) ของรายการยา
    แก้ไขผ่านหน้า "ผู้ดูแล" ในโปรแกรม แล้วกด "ดาวน์โหลด cart-list.js" เพื่ออัปโหลดแทนไฟล์นี้บน GitHub */
 window.CART_LIST_FILE = {
-  "updated": "2026-11-08T09:47:53+07:00",
+  "updated": "2026-11-12T15:30:00+07:00",
   "drugs": [
     { "id": "amox250", "name": "Amoxicillin 250 mg", "unit": "แคปซูล", "pack": 20, "max": 5, "group": "capsule", "warn1": "รับประทานยาติดต่อกันทุกวันจนยาหมด", "warn2": "", "indication": "ยาปฏิชีวนะ ยาฆ่าเชื้อ", "exp": false, "active": true },
     { "id": "amox500", "name": "Amoxicillin 500 mg", "unit": "แคปซูล", "pack": 20, "max": 5, "group": "capsule", "warn1": "รับประทานยาติดต่อกันทุกวันจนยาหมด", "warn2": "", "indication": "ยาปฏิชีวนะ ยาฆ่าเชื้อ", "exp": false, "active": true },
@@ -13,7 +13,7 @@ window.CART_LIST_FILE = {
     { "id": "dom10", "name": "Domperidone 10 mg", "unit": "เม็ด", "pack": 10, "max": 5, "group": "tablet_ac", "warn1": "", "warn2": "", "indication": "ยาแก้คลื่นไส้ อาเจียน", "exp": false, "active": true },
     { "id": "guai100", "name": "Guaifenesin 100 mg", "unit": "เม็ด", "pack": 10, "max": 5, "group": "tablet", "warn1": "", "warn2": "", "indication": "ยาละลายเสมหะ", "exp": true, "active": true },
     { "id": "hyo10", "name": "Hyoscine 10 mg", "unit": "เม็ด", "pack": 10, "max": 5, "group": "tablet", "warn1": "", "warn2": "", "indication": "ยาแก้ปวดท้อง ปวดเกร็ง", "exp": false, "active": true },
-    { "id": "para500", "name": "Paracetamol 500 mg", "unit": "เม็ด", "pack": 10, "max": 10, "group": "tablet", "warn1": "", "warn2": "", "indication": "ยาแก้ปวด ลดไข้", "exp": false, "active": true },
+    { "id": "para500", "name": "Paracetamol 500 mg", "unit": "เม็ด", "pack": 10, "max": 10, "group": "tablet_prn", "warn1": "", "warn2": "", "indication": "ยาแก้ปวด ลดไข้", "exp": false, "active": true },
     { "id": "omep20", "name": "Omeprazole 20 mg", "unit": "แคปซูล", "pack": 10, "max": 5, "group": "capsule_ac", "warn1": "", "warn2": "", "indication": "ยาลดกรด รักษาแผลในกระเพาะอาหาร", "exp": false, "active": true },
     { "id": "roxi150", "name": "Roxithromycin 150 mg", "unit": "เม็ด", "pack": 10, "max": 5, "group": "tablet", "warn1": "รับประทานยาติดต่อกันทุกวันจนยาหมด", "warn2": "", "indication": "ยาปฏิชีวนะ ยาฆ่าเชื้อ", "exp": false, "active": true },
     { "id": "simet80", "name": "Simethicone 80 mg", "unit": "เม็ด", "pack": 10, "max": 5, "group": "tablet", "warn1": "", "warn2": "", "indication": "ยาขับลม แก้ท้องอืด เคี้ยวให้ละเอียดก่อนกลืน", "exp": false, "active": true },
@@ -29,7 +29,7 @@ window.CART_LIST_FILE = {
     { "id": "guaisyr", "name": "Guaifenesin syr 60 ml", "unit": "ขวด", "pack": 1, "max": 5, "group": "syrup", "warn1": "", "warn2": "", "indication": "ยาละลายเสมหะ", "exp": false, "active": true },
     { "id": "hyosyr", "name": "Hyoscine syr 30 ml", "unit": "ขวด", "pack": 1, "max": 5, "group": "syrup", "warn1": "", "warn2": "", "indication": "ยาแก้ปวดท้อง ปวดเกร็ง", "exp": false, "active": true },
     { "id": "ibususp", "name": "Ibuprofen susp 60 ml", "unit": "ขวด", "pack": 1, "max": 5, "group": "syrup", "warn1": "รับประทานหลังอาหารทันที", "warn2": "", "indication": "ยาแก้ปวด ลดไข้", "exp": false, "active": true },
-    { "id": "parasusp", "name": "Paracetamol susp 120 mg/5 ml 60 ml", "unit": "ขวด", "pack": 1, "max": 5, "group": "syrup", "warn1": "อย่าใช้เกิน 5 ครั้งต่อวัน", "warn2": "", "indication": "ยาแก้ปวด ลดไข้", "exp": false, "active": true },
+    { "id": "parasusp", "name": "Paracetamol susp 120 mg/5 ml 60 ml", "unit": "ขวด", "pack": 1, "max": 5, "group": "syrup_prn", "warn1": "อย่าใช้เกิน 5 ครั้งต่อวัน", "warn2": "", "indication": "ยาแก้ปวด ลดไข้", "exp": false, "active": true },
     { "id": "simetdrop", "name": "Simethicone drop 40 mg/0.6 ml", "unit": "ขวด", "pack": 1, "max": 3, "group": "syrup", "warn1": "", "warn2": "", "indication": "ยาขับลม แก้ท้องอืด", "exp": false, "active": true },
     { "id": "orskid", "name": "ORS (เด็ก)", "unit": "ซอง", "pack": 1, "max": 10, "group": "ors", "warn1": "", "warn2": "", "indication": "ทดแทนน้ำและเกลือแร่ เมื่อท้องเสีย", "exp": false, "active": true },
     { "id": "orsadult", "name": "ORS (ผู้ใหญ่)", "unit": "ซอง", "pack": 1, "max": 10, "group": "ors", "warn1": "", "warn2": "", "indication": "ทดแทนน้ำและเกลือแร่ เมื่อท้องเสีย", "exp": false, "active": true },

@@ -220,12 +220,14 @@ table.admin select { font-size: .85rem; padding: 3px 4px; }
 const DOTS  = '..............';
 const TIMES = 'เช้า   กลางวัน   เย็น   ก่อนนอน';
 const GROUPS = {
-    tablet:     { name: 'ยาเม็ด',              sec: 'solid',  dir: [`รับประทานครั้งละ${DOTS}เม็ด`, `วันละ${DOTS}ครั้ง  ก่อนอาหาร/หลังอาหาร`, TIMES], fixed: [] },
+    tablet:     { name: 'ยาเม็ด',              sec: 'solid',  dir: [`รับประทานครั้งละ${DOTS}เม็ด`, `วันละ${DOTS}ครั้ง  ก่อน/หลังอาหาร`, TIMES], fixed: [] },
     tablet_ac:  { name: 'ยาเม็ด ก่อนอาหาร',     sec: 'solid',  dir: [`รับประทานครั้งละ${DOTS}เม็ด`, `วันละ${DOTS}ครั้ง  ก่อนอาหาร`, TIMES], fixed: [] },
-    capsule:    { name: 'แคปซูล',              sec: 'solid',  dir: [`รับประทานครั้งละ${DOTS}แคปซูล`, `วันละ${DOTS}ครั้ง  ก่อนอาหาร/หลังอาหาร`, TIMES], fixed: [] },
+    tablet_prn: { name: 'ยาเม็ด เวลามีไข้/ปวด',  sec: 'solid',  dir: [`รับประทานครั้งละ${DOTS}เม็ด`, 'ทุก 4 - 6 ชั่วโมง  เวลามีไข้หรือปวด'], fixed: [] },
+    capsule:    { name: 'แคปซูล',              sec: 'solid',  dir: [`รับประทานครั้งละ${DOTS}แคปซูล`, `วันละ${DOTS}ครั้ง  ก่อน/หลังอาหาร`, TIMES], fixed: [] },
     capsule_ac: { name: 'แคปซูล ก่อนอาหาร',     sec: 'solid',  dir: [`รับประทานครั้งละ${DOTS}แคปซูล`, `วันละ${DOTS}ครั้ง  ก่อนอาหาร`, TIMES], fixed: [] },
     syrup:      { name: 'ยาน้ำ',               sec: 'liquid', dir: [`รับประทานครั้งละ${DOTS}ซีซี`, `วันละ${DOTS}ครั้ง  ก่อน/หลังอาหาร`, TIMES], fixed: [] },
     syrup_ac:   { name: 'ยาน้ำ ก่อนอาหาร',      sec: 'liquid', dir: [`รับประทานครั้งละ${DOTS}ซีซี`, `วันละ${DOTS}ครั้ง  ก่อนอาหาร`, TIMES], fixed: [] },
+    syrup_prn:  { name: 'ยาน้ำ เวลามีไข้/ปวด',   sec: 'liquid', dir: [`รับประทานครั้งละ${DOTS}ซีซี`, 'ทุก 4 - 6 ชั่วโมง  เวลามีไข้หรือปวด'], fixed: [] },
     antacid:    { name: 'ยาน้ำลดกรด (Antacil)', sec: 'liquid', dir: [`รับประทานครั้งละ${DOTS}ช้อนโต๊ะ`, `วันละ${DOTS}ครั้ง  ก่อน/หลังอาหาร`, TIMES], fixed: ['เขย่าขวดก่อนใช้ยา'] },
     ors:        { name: 'ORS',                  sec: 'other',  dir: ['1 ซองผสมน้ำ 1 แก้ว จิบบ่อยๆ'], fixed: [] },
     nac:        { name: 'NAC ซอง',              sec: 'other',  dir: [`ละลายครั้งละ${DOTS}ซองผสมน้ำ 1 แก้ว`, `วันละ${DOTS}ครั้ง  หลังอาหาร`, TIMES], fixed: [] },
